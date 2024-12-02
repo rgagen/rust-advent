@@ -1,69 +1,105 @@
-use std::fs;
 use regex::Regex;
-use std::collections::HashMap;
+use std::fs;
+
+enum ReportResult {
+    Safe,
+    Unsafe,
+}
+
+enum ReportDirection {
+    Ascending,
+    Descending,
+}
+
+struct Report {
+    // report: Vec<u32>,
+    // direction: ReportDirection,
+    result: ReportResult,
+}
+
+impl Report {
+    pub fn new(input: Vec<u32>) -> Report {
+        if input.len() < 2 {
+            panic!();
+        }
+
+        let direction: ReportDirection = if input[0] < input[1] {
+            ReportDirection::Ascending
+        } else {
+            ReportDirection::Descending
+        };
+
+        let mut result = ReportResult::Safe;
+        for i in 0..(input.len() - 1) {
+            let diff = input[i] as i32 - input[i + 1] as i32;
+            if diff.abs() < 1 || diff.abs() > 3 {
+                result = ReportResult::Unsafe;
+                break;
+            }
+            match direction {
+                ReportDirection::Ascending => {
+                    if diff > 0 {
+                        result = ReportResult::Unsafe;
+                        break;
+                    }
+                }
+                ReportDirection::Descending => {
+                    if diff < 0 {
+                        result = ReportResult::Unsafe;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return Report {
+            // report: input,
+            // direction: direction,
+            result: result,
+        };
+    }
+}
 
 fn main() {
-    println!("Advent of Code 2024 - Day 1");
-    let file_path = "inputs/aoc2401.txt";
+    println!("Advent of Code 2024 - Day 2");
+    let file_path = "inputs/aoc2402.txt";
     let input = fs::read_to_string(file_path).unwrap();
 
-    println!("Day 1, Part 1: {}", part1(input.clone()));
-    println!("Day 1, Part 2: {}", part2(input.clone()));
+    println!("Day 2, Part 1: {}", part1(input.clone()));
+    // println!("Day 2, Part 2: {}", part2(input.clone()));
 }
 
 fn part1(input: String) -> u32 {
-    let (mut x, mut y) = parse_lines(input);
-    x.sort();
-    y.sort();
-
-    let mut diffs: Vec<u32> = Vec::new();
-    for i in 0..x.len() {
-        diffs.push(x[i].abs_diff(y[i]))
+    let mut num_safe: u32 = 0;
+    for line in input.lines() {
+        let report = Report::new(parse_line(line));
+        num_safe += match report.result {
+            ReportResult::Safe => 1,
+            ReportResult::Unsafe => 0,
+        }
     }
-
-    let output = diffs.iter().fold(0u32, |sum, i| sum + i);
-    return output;
+    return num_safe;
 }
 
 fn part2(input: String) -> u32 {
-    let (x, y) = parse_lines(input);
-    let mut y_dict: HashMap<u32, u32> = HashMap::new();
-    for i in y {
-        let count = y_dict.entry(i).or_insert(0);
-        *count += 1;
-    }
-    let mut output: Vec<u32> = Vec::new();
-    for i in x {
-        output.push(i * y_dict.get(&i).unwrap_or(&0))
-    }
-    return output.iter().fold(0u32, |sum, i| sum + i);
+    return 1;
 }
 
-fn parse_line(line: &str) -> [u32; 2] {
-    let re = Regex::new(r"(\d+)\s+(\d+)").unwrap();
-    let caps = re.captures(line).unwrap();
-    let output: [u32;2] = [caps[1].parse().unwrap(), caps[2].parse().unwrap()];
+fn parse_line(line: &str) -> Vec<u32> {
+    let re = Regex::new(r"(\d+)").unwrap();
+    let mut output: Vec<u32> = Vec::new();
+    for (_, [digits]) in re.captures_iter(line).map(|c| c.extract()) {
+        output.push(digits.parse::<u32>().unwrap())
+    }
     return output;
 }
-
-fn parse_lines(input: String) -> (Vec<u32>, Vec<u32>) {
-    let mut x: Vec<u32> = Vec::new();
-    let mut y: Vec<u32> = Vec::new();
-    for line in input.lines() {
-        let [next_x, next_y] = parse_line(line);
-        x.push(next_x);
-        y.push(next_y);
-    };
-    return (x, y)
-}
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn get_test_input() -> String {
-        let file_path = "test_inputs/aoc2401a.txt";
+        let file_path = "test_inputs/aoc2402a.txt";
         return fs::read_to_string(file_path).unwrap();
     }
 
@@ -71,13 +107,13 @@ mod tests {
     fn part1_test_input() {
         let input = get_test_input();
         let result = part1(input);
-        assert_eq!(result, 11)
+        assert_eq!(result, 2)
     }
 
     #[test]
     fn part2_test_input() {
         let input = get_test_input();
         let result = part2(input);
-        assert_eq!(result, 31)
+        assert_eq!(result, 4)
     }
 }
